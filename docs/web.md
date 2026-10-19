@@ -66,6 +66,25 @@ The controls provide the console, CRT filter, and fullscreen without requiring s
 
 The console also contains the optional ARGS field used by some larger ports. While that text field has focus, its keystrokes are kept out of the running PixelRAM program.
 
+## Resolution: fixed or native
+
+The program decides how the shared shell shows it.
+
+A program with a fixed resolution (every PixelRAM framebuffer, and a raylib program that does not resize its window) is scaled to fill the display. Enlarged, its pixels stay sharp, which is what pixel art and ports such as Prince of Persia need. A program that prefers smooth scaling sets this before its first frame:
+
+```c
+EM_ASM(window.PIXELRAM_SCALING = 'smooth';);
+```
+
+A raylib program that can draw at any size runs at native resolution instead:
+
+```c
+SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+InitWindow(960, 540, "Mein Programm");
+```
+
+The display then fills the free space, and the canvas follows it whenever the browser window, the console or fullscreen changes that space: one canvas pixel per CSS pixel, nothing enlarged. raylib reads the new size from `window.innerWidth` and `window.innerHeight` on a `resize` event, so the shell reports the free area there and announces a change with such an event. The program reads its current size with `GetScreenWidth()` and `GetScreenHeight()` every frame; the 960×540 above is only the size it starts with. The shell tells the two kinds apart by whether the canvas follows the announced size.
+
 ## Mouse capture
 
 `set_mouse_relative(true)` enables relative mouse input. Browsers require a user gesture for pointer lock, so PixelRAM captures and hides the pointer on the next click on the canvas. Escape releases browser pointer lock; a later click can capture it again while relative mode remains requested.

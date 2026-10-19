@@ -113,10 +113,28 @@ function crtLogicalSize(logical){
    h:Math.max(1,Math.floor(logical.h*scale))
  }
 }
+// Enlarged: sharp pixels, unless the program asks for smooth scaling
+// (window.PIXELRAM_SCALING='smooth'). Shrunk: always smooth.
 function setCanvasInterpolation(scaleX,scaleY){
  const downscaling=scaleX<0.999||scaleY<0.999;
- canvas.style.imageRendering=downscaling?'auto':'pixelated'
+ canvas.style.imageRendering=downscaling||window.PIXELRAM_SCALING==='smooth'?'auto':'pixelated'
 }
+// The program decides how it is shown (docs/web.md). One that resizes its
+// window (raylib: FLAG_WINDOW_RESIZABLE) runs at native resolution: the frame
+// fills the stage and the program draws one canvas pixel per CSS pixel.
+// raylib takes the new size from window.innerWidth/innerHeight on 'resize',
+// so these report the free area of the stage, and the page announces a new
+// area with a 'resize' event. When the canvas follows, the program is
+// resizable; one with a fixed resolution ignores it and is scaled as before.
+let native=false,requested=null,lastAsked='',asking=false,programStarted=false;
+for(const name of['innerWidth','innerHeight']){
+ const real=Object.getOwnPropertyDescriptor(window,name)||Object.getOwnPropertyDescriptor(Window.prototype,name);
+ if(!real||!real.get)continue;
+ try{Object.defineProperty(window,name,{configurable:true,enumerable:true,get(){return requested?requested[name==='innerWidth'?'w':'h']:real.get.call(window)}})}catch(_){}
+}
+function availableArea(){const r=stage.getBoundingClientRect();return{w:Math.max(80,Math.floor(r.width-28)),h:Math.max(60,Math.floor(r.height-28))}}
+function askForSize(area){const key=`${area.w}x${area.h}`;if(key===lastAsked)return;lastAsked=key;requested=area;asking=true;try{window.dispatchEvent(new Event('resize'))}finally{asking=false}}
+function sizeCrt(cw,ch){const dpr=Math.min(window.devicePixelRatio||1,2),ow=Math.max(1,Math.round(cw*dpr)),oh=Math.max(1,Math.round(ch*dpr));if(crtCanvas.width!==ow||crtCanvas.height!==oh){crtCanvas.width=ow;crtCanvas.height=oh;crtRenderer.resize(ow,oh)}}
 function layoutSourceCanvas(fw,fh){
  if(!window.PIXELRAM_LOGICAL_WIDTH||!window.PIXELRAM_LOGICAL_HEIGHT){
    canvas.style.left='0';canvas.style.top='0';canvas.style.width='100%';canvas.style.height='100%';
@@ -128,7 +146,13 @@ function layoutSourceCanvas(fw,fh){
  canvas.style.left=`${-c.x*sx}px`;canvas.style.top=`${-c.y*sy}px`;
  setCanvasInterpolation(sx,sy)
 }
-function layoutScreen(){const aspect=displayAspect(),r=stage.getBoundingClientRect(),aw=Math.max(80,r.width-28),ah=Math.max(60,r.height-28);let cw=aw,ch=cw/aspect;if(ch>ah){ch=ah;cw=ch*aspect}cw=Math.max(1,Math.floor(cw));ch=Math.max(1,Math.floor(ch));frame.style.width=`${cw}px`;frame.style.height=`${ch}px`;layoutSourceCanvas(cw,ch);const dpr=Math.min(window.devicePixelRatio||1,2),ow=Math.max(1,Math.round(cw*dpr)),oh=Math.max(1,Math.round(ch*dpr));if(crtCanvas.width!==ow||crtCanvas.height!==oh){crtCanvas.width=ow;crtCanvas.height=oh;crtRenderer.resize(ow,oh)}}
+function layoutScreen(){
+ const area=availableArea();
+ if(!native&&requested&&canvas.width===requested.w&&canvas.height===requested.h)native=true;
+ if(native){frame.style.width=`${area.w}px`;frame.style.height=`${area.h}px`;layoutSourceCanvas(area.w,area.h);sizeCrt(area.w,area.h);askForSize(area);return}
+ const aspect=displayAspect(),aw=area.w,ah=area.h;let cw=aw,ch=cw/aspect;if(ch>ah){ch=ah;cw=ch*aspect}cw=Math.max(1,Math.floor(cw));ch=Math.max(1,Math.floor(ch));frame.style.width=`${cw}px`;frame.style.height=`${ch}px`;layoutSourceCanvas(cw,ch);sizeCrt(cw,ch);
+ if(programStarted)askForSize(area)
+}
 
 function splitArgs(text){
  const args=[];let cur='',quote='',escape=false;
@@ -283,7 +307,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='F6'){e.preventDefault();e.stopImmediatePropagation();toggleCrt();return}
  if(e.code==='F11'){e.preventDefault();e.stopImmediatePropagation();toggleFullscreen()}
 },true);
-window.addEventListener('resize',layoutScreen);new MutationObserver(layoutScreen).observe(canvas,{attributes:true,attributeFilter:['width','height']});window.addEventListener('error',e=>{if(e.message)appendLog('stderr',[e.message])});window.addEventListener('unhandledrejection',e=>appendLog('stderr',['Unhandled promise rejection:',e.reason]));
+window.addEventListener('resize',()=>{if(!asking)layoutScreen()});new MutationObserver(()=>{programStarted=true;layoutScreen()}).observe(canvas,{attributes:true,attributeFilter:['width','height']});window.addEventListener('error',e=>{if(e.message)appendLog('stderr',[e.message])});window.addEventListener('unhandledrejection',e=>appendLog('stderr',['Unhandled promise rejection:',e.reason]));
 consolePanel.dataset.autoscroll='1';restoreCrtPreference();layoutScreen();requestAnimationFrame(crtLoop);requestAnimationFrame(()=>canvas.focus({preventScroll:true}));
 Module=Module||{};
 Module.arguments=Module.arguments||[];

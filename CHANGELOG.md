@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.23
+
+- The program decides how the web shell shows it. A raylib program that sets `FLAG_WINDOW_RESIZABLE` runs at native resolution: the display fills the free space and the canvas follows it, one canvas pixel per CSS pixel, so nothing is enlarged into big pixels. Programs with a fixed resolution are scaled as before, with sharp pixels, or smoothly when they set `window.PIXELRAM_SCALING = 'smooth'`.
+
 - Add a first-pass optional OpenCrystalCaves / Crystal Caves web port with a bundled shareware fallback
 - Add `clear()` for indexed framebuffers and `clear_rgb()` for direct-color framebuffers
 - Use `clear()` in the animation example and document the clear → draw → present frame pattern
