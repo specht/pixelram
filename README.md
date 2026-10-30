@@ -238,7 +238,7 @@ pixels[y * screen_pitch() + x] = color;
 
 PixelRAM's web backend synchronizes explicit presentation with `requestAnimationFrame`, lets one-shot examples auto-present, yields through Asyncify for `sleep_ms()`, and uses browser pointer lock for relative mouse mode. A web build therefore needs a raylib/Emscripten toolchain and Asyncify enabled.
 
-The shared browser shell also provides discoverable controls for the console, CRT filter, and fullscreen. Move the pointer over the bottom of the display to reveal them; the controls hide again after mouse inactivity.
+The shared browser shell also provides discoverable controls for saving the picture, the console, CRT filter, and fullscreen. Move the pointer over the bottom of the display to reveal them; the controls hide again after mouse inactivity.
 
 ## Larger ports
 

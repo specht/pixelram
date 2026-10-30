@@ -64,6 +64,8 @@ The repository's shared `shell.html` adds a small YouTube-style control bar at t
 
 The controls provide the console, CRT filter, and fullscreen without requiring students to remember keyboard shortcuts. Tooltips show the available shortcuts where applicable.
 
+**Save picture** (or F9) downloads the current frame as a PNG at the program's own resolution: one image pixel per framebuffer pixel, without the scaling of the display and without the CRT filter. The file is named after the window title and the time. Programs that draw without PixelRAM's framebuffer (raylib) are captured from the canvas, cropped to their logical size.
+
 The console also contains the optional ARGS field used by some larger ports. While that text field has focus, its keystrokes are kept out of the running PixelRAM program.
 
 ## Resolution: fixed or native

@@ -42,7 +42,7 @@ body.crt #screen-frame { box-shadow:0 18px 65px rgba(0,0,0,.62), 0 0 34px rgba(1
 </style>
 </head>
 <body>
-<div id="stage"><div id="screen-frame"><canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas><canvas id="crt-canvas"></canvas><div id="display-controls"><button id="console-toggle" class="display-control" type="button" aria-label="Toggle console"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3"/><path d="M13 15h4"/></svg><span class="tooltip">Console (`)</span></button><button id="crt-toggle" class="display-control" type="button" aria-label="Toggle CRT filter"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="15" rx="2"/><path d="M7 8h10M7 11.5h10M7 15h10"/></svg><span class="tooltip">CRT filter (F6)</span></button><button id="fullscreen-toggle" class="display-control" type="button" aria-label="Toggle fullscreen"><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg><span class="tooltip">Fullscreen (F11)</span></button></div></div></div>
+<div id="stage"><div id="screen-frame"><canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas><canvas id="crt-canvas"></canvas><div id="display-controls"><button id="save-picture" class="display-control" type="button" aria-label="Save picture"><svg viewBox="0 0 24 24"><path d="M4 8h3.2l1.8-2.6h6l1.8 2.6H20v11H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg><span class="tooltip">Save picture (F9)</span></button><button id="console-toggle" class="display-control" type="button" aria-label="Toggle console"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3"/><path d="M13 15h4"/></svg><span class="tooltip">Console (`)</span></button><button id="crt-toggle" class="display-control" type="button" aria-label="Toggle CRT filter"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="15" rx="2"/><path d="M7 8h10M7 11.5h10M7 15h10"/></svg><span class="tooltip">CRT filter (F6)</span></button><button id="fullscreen-toggle" class="display-control" type="button" aria-label="Toggle fullscreen"><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg><span class="tooltip">Fullscreen (F11)</span></button></div></div></div>
 <div id="console-panel" aria-hidden="true"><div id="console-header"><span class="spacer"></span><button id="clear-log" type="button">clear</button></div><div id="args-row"><span>args</span><input id="args-input" type="text" spellcheck="false" autocomplete="off"><button id="args-run" type="button">run</button></div><div id="log-output" role="log" aria-live="off"></div><div id="console-grip"></div></div>
 <div id="toast"></div>
 <script>
@@ -196,6 +196,16 @@ function hideDisplayControls(){clearTimeout(controlsTimer);frame.classList.remov
 function showDisplayControls(duration=1800){frame.classList.add('controls-visible');clearTimeout(controlsTimer);controlsTimer=setTimeout(hideDisplayControls,duration)}
 function controlsDuration(e){return e.pointerType==='touch'?2800:1800}
 function updatePointer(e){const r=frame.getBoundingClientRect();if(r.width>0&&r.height>0){window.PIXELRAM_POINTER_X=Math.max(0,Math.min(319,Math.floor((e.clientX-r.left)*320/r.width)));window.PIXELRAM_POINTER_Y=Math.max(0,Math.min(199,Math.floor((e.clientY-r.top)*200/r.height)))}}
+// the picture as a PNG at the program's own resolution, without scaling or CRT
+function savePicture(){
+ let source=window.PIXELRAM_FRAME_CANVAS;
+ if(!source){const l=logicalSize(),c=sourceCrop();source=document.createElement('canvas');source.width=l.w;source.height=l.h;const x=source.getContext('2d',{alpha:false});x.imageSmoothingEnabled=false;x.drawImage(canvas,c.x,c.y,c.w,c.h,0,0,l.w,l.h)}
+ const stamp=new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','-');
+ const name=(document.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'pixelram')+'-'+stamp+'.png';
+ source.toBlob(blob=>{if(!blob){showToast('Picture not saved');return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000);showToast('Picture saved')},'image/png');
+ canvas.focus({preventScroll:true})
+}
+document.getElementById('save-picture').addEventListener('click',savePicture);
 consoleToggle.addEventListener('click',toggleConsole);
 crtToggle.addEventListener('click',toggleCrt);
 fullscreenToggle.addEventListener('click',toggleFullscreen);
@@ -305,6 +315,7 @@ window.addEventListener('keydown',e=>{
  if(e.repeat)return;
  if(e.code==='Backquote'){e.preventDefault();e.stopImmediatePropagation();toggleConsole();return}
  if(e.code==='F6'){e.preventDefault();e.stopImmediatePropagation();toggleCrt();return}
+ if(e.code==='F9'){e.preventDefault();e.stopImmediatePropagation();savePicture();return}
  if(e.code==='F11'){e.preventDefault();e.stopImmediatePropagation();toggleFullscreen()}
 },true);
 window.addEventListener('resize',()=>{if(!asking)layoutScreen()});new MutationObserver(()=>{programStarted=true;layoutScreen()}).observe(canvas,{attributes:true,attributeFilter:['width','height']});window.addEventListener('error',e=>{if(e.message)appendLog('stderr',[e.message])});window.addEventListener('unhandledrejection',e=>appendLog('stderr',['Unhandled promise rejection:',e.reason]));
