@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.24
+
 - The web shell saves the picture: a button in the control bar and F9 download the current frame as a PNG at the program's own resolution, without scaling or CRT filter, named after the window title and the time.
 
 ## 0.1.23
